@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product Title Noise Cleaner</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f5;
+      color: #111;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+
+    .container { max-width: 860px; margin: 0 auto; }
+
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 32px; }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
+
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      resize: vertical;
+      min-height: 72px;
+      font-family: inherit;
+    }
+    textarea:focus { outline: none; border-color: #555; }
+
+    .btn {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 9px 20px;
+      background: #111;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn:hover { background: #333; }
+    .btn:disabled { background: #999; cursor: not-allowed; }
+    .btn-secondary {
+      background: #fff;
+      color: #111;
+      border: 1px solid #ccc;
+      margin-left: 8px;
+    }
+    .btn-secondary:hover { background: #f5f5f5; }
+
+    /* Result card */
+    .result-card {
+      display: none;
+      margin-top: 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .result-card.visible { display: block; }
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: #f9f9f9;
+      border-bottom: 1px solid #e0e0e0;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-noise { background: #fef3c7; color: #92400e; }
+    .badge-clean { background: #d1fae5; color: #065f46; }
+    .badge-uncertain { background: #fee2e2; color: #991b1b; }
+
+    .result-body { padding: 14px; }
+    .result-row { display: flex; gap: 12px; margin-bottom: 10px; font-size: 0.88rem; }
+    .result-label { color: #666; min-width: 130px; flex-shrink: 0; }
+    .result-value { color: #111; word-break: break-word; }
+    .result-value.cleaned { font-weight: 600; color: #111; }
+    .token-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .token {
+      background: #fef3c7;
+      color: #92400e;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 0.8rem;
+    }
+    .confidence-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: #e5e7eb;
+      overflow: hidden;
+      margin-top: 4px;
+      width: 160px;
+    }
+    .confidence-fill {
+      height: 100%;
+      background: #22c55e;
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+
+    /* Divider */
+    .divider { border: none; border-top: 1px solid #e0e0e0; margin: 20px 0; }
+
+    /* CSV section */
+    .drop-zone {
+      border: 2px dashed #ccc;
+      border-radius: 6px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    .drop-zone.drag-over { border-color: #111; background: #f9f9f9; color: #111; }
+    .drop-zone input[type="file"] { display: none; }
+
+    /* Bulk results table */
+    .bulk-meta {
+      display: none;
+      align-items: center;
+      gap: 16px;
+      margin: 14px 0;
+      font-size: 0.88rem;
+    }
+    .bulk-meta.visible { display: flex; }
+    .meta-stat { color: #666; }
+    .meta-stat strong { color: #111; }
+
+    .table-wrap { overflow-x: auto; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      background: #f5f5f5;
+      border-bottom: 1px solid #e0e0e0;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+    td.mono { font-family: monospace; font-size: 0.82rem; }
+
+    .error-msg {
+      display: none;
+      color: #b91c1c;
+      font-size: 0.87rem;
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #fee2e2;
+      border-radius: 4px;
+    }
+    .error-msg.visible { display: block; }
+
+    .spinner {
+      display: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ccc;
+      border-top-color: #111;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-left: 8px;
+    }
+    .spinner.visible { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Product Title Noise Cleaner</h1>
+  <p class="subtitle">Remove obvious noise from e-commerce product titles — safely, without rewriting them.</p>
+
+  <!-- Single title -->
+  <div class="card">
+    <h2>Single Title</h2>
+    <textarea id="singleInput" placeholder="e.g. Bosch GSB 18V-50 Professional Cordless Drill !!! BEST SALE free shipping"></textarea>
+    <div style="display:flex;align-items:center;">
+      <button class="btn" id="cleanBtn" onclick="cleanSingle()">Clean</button>
+      <span class="spinner" id="singleSpinner"></span>
+    </div>
+    <div class="error-msg" id="singleError"></div>
+
+    <div class="result-card" id="singleResult">
+      <div class="result-header" id="resultHeader"></div>
+      <div class="result-body">
+        <div class="result-row">
+          <span class="result-label">Original</span>
+          <span class="result-value" id="resOriginal"></span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Cleaned</span>
+          <span class="result-value cleaned" id="resCleaned"></span>
+        </div>
+        <div class="result-row" id="resRemovedRow">
+          <span class="result-label">Removed tokens</span>
+          <span class="result-value"><div class="token-list" id="resTokens"></div></span>
+        </div>
+        <div class="result-row" id="resCategoriesRow">
+          <span class="result-label">Categories</span>
+          <span class="result-value" id="resCategories"></span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Confidence</span>
+          <span class="result-value">
+            <span id="resConfidence"></span>%
+            <div class="confidence-bar"><div class="confidence-fill" id="resConfidenceFill"></div></div>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk CSV -->
+  <div class="card">
+    <h2>Bulk CSV Upload</h2>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('csvInput').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+      <input type="file" id="csvInput" accept=".csv" onchange="handleFile(event)" />
+      Drop a CSV here or <strong>click to browse</strong><br/>
+      <span style="font-size:0.8rem;color:#999;">Must have a column named <code>title</code></span>
+    </div>
+
+    <div style="display:flex;align-items:center;margin-top:12px;gap:8px;">
+      <button class="btn" id="bulkPreviewBtn" style="display:none;" onclick="previewBulk()">Preview Results</button>
+      <button class="btn btn-secondary" id="bulkDownloadBtn" style="display:none;" onclick="downloadBulk()">Download CSV</button>
+      <span class="spinner" id="bulkSpinner"></span>
+    </div>
+    <div class="error-msg" id="bulkError"></div>
+
+    <div class="bulk-meta" id="bulkMeta">
+      <span class="meta-stat">Total: <strong id="metaTotal">0</strong></span>
+      <span class="meta-stat">Noise found: <strong id="metaNoise">0</strong></span>
+    </div>
+
+    <div class="table-wrap" id="bulkTableWrap" style="display:none;">
+      <table id="bulkTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Original Title</th>
+            <th>Cleaned Title</th>
+            <th>Removed</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody id="bulkTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = "";   // same origin
+  let selectedFile = null;
+
+  // ── Single title ─────────────────────────────────────────────────────────
+
+  async function cleanSingle() {
+    const input = document.getElementById("singleInput").value.trim();
+    if (!input) return;
+
+    const btn = document.getElementById("cleanBtn");
+    const spinner = document.getElementById("singleSpinner");
+    const errEl = document.getElementById("singleError");
+    const resultEl = document.getElementById("singleResult");
+
+    btn.disabled = true;
+    spinner.classList.add("visible");
+    errEl.classList.remove("visible");
+    resultEl.classList.remove("visible");
+
+    try {
+      const res = await fetch(API + "/clean-title", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: input }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Request failed");
+      }
+      const data = await res.json();
+      renderSingleResult(data);
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.classList.add("visible");
+    } finally {
+      btn.disabled = false;
+      spinner.classList.remove("visible");
+    }
+  }
+
+  function renderSingleResult(d) {
+    const header = document.getElementById("resultHeader");
+    header.innerHTML = "";
+
+    const badge = document.createElement("span");
+    if (d.contains_uncertainty) {
+      badge.className = "badge badge-uncertain";
+      badge.textContent = "Uncertain";
+    } else if (d.noise_found) {
+      badge.className = "badge badge-noise";
+      badge.textContent = "Noise removed";
+    } else {
+      badge.className = "badge badge-clean";
+      badge.textContent = "Clean";
+    }
+    header.appendChild(badge);
+
+    document.getElementById("resOriginal").textContent = d.original_title;
+    document.getElementById("resCleaned").textContent = d.cleaned_title;
+
+    const tokensEl = document.getElementById("resTokens");
+    tokensEl.innerHTML = "";
+    if (d.removed_tokens.length) {
+      d.removed_tokens.forEach(t => {
+        const span = document.createElement("span");
+        span.className = "token";
+        span.textContent = t;
+        tokensEl.appendChild(span);
+      });
+      document.getElementById("resRemovedRow").style.display = "";
+    } else {
+      document.getElementById("resRemovedRow").style.display = "none";
+    }
+
+    const cats = document.getElementById("resCategories");
+    if (d.noise_categories.length) {
+      cats.textContent = d.noise_categories.join(", ");
+      document.getElementById("resCategoriesRow").style.display = "";
+    } else {
+      document.getElementById("resCategoriesRow").style.display = "none";
+    }
+
+    document.getElementById("resConfidence").textContent = d.confidence_score;
+    document.getElementById("resConfidenceFill").style.width = d.confidence_score + "%";
+
+    document.getElementById("singleResult").classList.add("visible");
+  }
+
+  // ── CSV drop zone ─────────────────────────────────────────────────────────
+
+  function onDragOver(e) {
+    e.preventDefault();
+    document.getElementById("dropZone").classList.add("drag-over");
+  }
+  function onDragLeave() {
+    document.getElementById("dropZone").classList.remove("drag-over");
+  }
+  function onDrop(e) {
+    e.preventDefault();
+    document.getElementById("dropZone").classList.remove("drag-over");
+    const f = e.dataTransfer.files[0];
+    if (f) selectFile(f);
+  }
+  function handleFile(e) {
+    selectFile(e.target.files[0]);
+  }
+  function selectFile(f) {
+    selectedFile = f;
+    document.getElementById("dropZone").innerHTML =
+      `<input type="file" id="csvInput" accept=".csv" onchange="handleFile(event)" />` +
+      `<strong>${f.name}</strong> selected`;
+    document.getElementById("bulkPreviewBtn").style.display = "";
+    document.getElementById("bulkDownloadBtn").style.display = "";
+    document.getElementById("bulkTableWrap").style.display = "none";
+    document.getElementById("bulkMeta").classList.remove("visible");
+    document.getElementById("bulkError").classList.remove("visible");
+  }
+
+  // ── Bulk preview ──────────────────────────────────────────────────────────
+
+  async function previewBulk() {
+    if (!selectedFile) return;
+    const spinner = document.getElementById("bulkSpinner");
+    const errEl = document.getElementById("bulkError");
+    spinner.classList.add("visible");
+    errEl.classList.remove("visible");
+
+    try {
+      const fd = new FormData();
+      fd.append("file", selectedFile);
+      const res = await fetch(API + "/clean-bulk-preview", { method: "POST", body: fd });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Request failed");
+      }
+      const data = await res.json();
+      renderBulkTable(data);
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.classList.add("visible");
+    } finally {
+      spinner.classList.remove("visible");
+    }
+  }
+
+  function renderBulkTable(data) {
+    document.getElementById("metaTotal").textContent = data.total;
+    document.getElementById("metaNoise").textContent = data.noise_found_count;
+    document.getElementById("bulkMeta").classList.add("visible");
+
+    const tbody = document.getElementById("bulkTbody");
+    tbody.innerHTML = "";
+    data.results.forEach((r, i) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${esc(r.original_title)}</td>
+        <td><strong>${esc(r.cleaned_title)}</strong></td>
+        <td class="mono">${r.removed_tokens.length ? esc(r.removed_tokens.join(", ")) : "<span style='color:#999'>—</span>"}</td>
+        <td>${r.confidence_score}%</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("bulkTableWrap").style.display = "";
+  }
+
+  // ── Bulk download ─────────────────────────────────────────────────────────
+
+  async function downloadBulk() {
+    if (!selectedFile) return;
+    const spinner = document.getElementById("bulkSpinner");
+    const errEl = document.getElementById("bulkError");
+    spinner.classList.add("visible");
+    errEl.classList.remove("visible");
+
+    try {
+      const fd = new FormData();
+      fd.append("file", selectedFile);
+      const res = await fetch(API + "/clean-bulk", { method: "POST", body: fd });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Request failed");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "cleaned_titles.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.classList.add("visible");
+    } finally {
+      spinner.classList.remove("visible");
+    }
+  }
+
+  function esc(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  // ── Enter key support ─────────────────────────────────────────────────────
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("singleInput").addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); cleanSingle(); }
+    });
+  });
+</script>
+</body>
+</html>
