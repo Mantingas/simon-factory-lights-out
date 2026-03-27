@@ -79,4 +79,5 @@ function migrate(db) {
   `)
 }
 
+export { migrate }
 export default getDb
