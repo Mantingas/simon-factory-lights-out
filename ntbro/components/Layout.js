@@ -30,15 +30,15 @@ export default function Layout({ children, title }) {
         <nav className="bg-white border-t border-slate-200 flex">
           <Link href="/" className="flex-1 flex flex-col items-center py-3 text-xs font-medium text-blue-600">
             <span className="text-xl mb-0.5">📋</span>
-            Tasks
+            Užduotys
           </Link>
           <Link href="/clients" className="flex-1 flex flex-col items-center py-3 text-xs font-medium text-slate-500">
             <span className="text-xl mb-0.5">👥</span>
-            Clients
+            Klientai
           </Link>
           <Link href="/properties/new" className="flex-1 flex flex-col items-center py-3 text-xs font-medium text-slate-500">
             <span className="text-xl mb-0.5">🏠</span>
-            Property
+            Objektas
           </Link>
         </nav>
       )}

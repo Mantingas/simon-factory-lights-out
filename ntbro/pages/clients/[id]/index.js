@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import Layout from '../../components/Layout'
+import Layout from '../../../components/Layout'
 
 const STATUS_LABEL = { hot: '🔴 Karštas', warm: '🟡 Šiltas', cold: '🔵 Šaltas' }
 const INTERACTION_LABEL = { call: '📞 Skambutis', sms: '💬 SMS', meeting: '🤝 Susitikimas' }
@@ -52,9 +52,14 @@ export default function ClientDetail() {
           </a>
         </div>
         {data.notes && <p className="text-sm text-slate-600 mt-3 pt-3 border-t border-slate-100">{data.notes}</p>}
-        <p className="text-xs text-slate-400 mt-2">
-          Paskutinis kontaktas: {formatDate(data.last_contact_at)}
-        </p>
+        <div className="flex items-center justify-between mt-2">
+          <p className="text-xs text-slate-400">
+            Paskutinis kontaktas: {formatDate(data.last_contact_at)}
+          </p>
+          <Link href={`/clients/${id}/edit`} className="text-xs text-blue-500 font-medium">
+            Redaguoti
+          </Link>
+        </div>
       </div>
 
       {/* Quick actions */}

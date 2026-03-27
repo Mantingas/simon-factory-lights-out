@@ -1,9 +1,9 @@
 const TASK_LABELS = {
-  match_call: 'MATCH FOUND — CALL NOW',
-  re_engage:  'Re-engage',
-  call:       'Call',
-  follow_up:  'Follow up',
-  callback:   'Schedule showing',
+  match_call: 'ATITIKMUO — SKAMBINTI!',
+  re_engage:  'Atnaujinti ryšį',
+  call:       'Skambinti',
+  follow_up:  'Sekti',
+  callback:   'Planavimas',
 }
 
 const PRIORITY_COLOR = (priority) => {
@@ -43,13 +43,13 @@ export default function TaskCard({ task, onDone }) {
             href={`tel:${task.client_phone}`}
             className="bg-blue-600 text-white text-sm font-semibold px-3 py-1.5 rounded-lg text-center"
           >
-            Call
+            Skambinti
           </a>
           <button
             onClick={() => onDone(task.id)}
             className="bg-white border border-slate-300 text-slate-700 text-sm font-medium px-3 py-1.5 rounded-lg"
           >
-            Done
+            Atlikta
           </button>
         </div>
       </div>

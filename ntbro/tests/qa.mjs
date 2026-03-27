@@ -110,6 +110,16 @@ section('TASK ENGINE — threshold logic')
   const t5 = runTaskEngine(db, c5)
   assert(t5?.type === 'call', 'days=7 → call')
 
+  // days 8 → call (no dead zone)
+  const c5b = createClient(db, { last_contact_at: daysAgo(8) })
+  const t5b = runTaskEngine(db, c5b)
+  assert(t5b?.type === 'call', 'days=8 → call (no dead zone)')
+
+  // days 10 → call (no dead zone)
+  const c5c = createClient(db, { last_contact_at: daysAgo(10) })
+  const t5c = runTaskEngine(db, c5c)
+  assert(t5c?.type === 'call', 'days=10 → call (no dead zone)')
+
   // days 11 → re_engage
   const c6 = createClient(db, { last_contact_at: daysAgo(11) })
   const t6 = runTaskEngine(db, c6)

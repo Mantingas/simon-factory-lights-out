@@ -5,6 +5,7 @@ export default function handler(req, res) {
   const db = getDb()
 
   if (req.method === 'GET') {
+    runTaskEngineForAllClients(db)
     const tasks = getTodayTasks(db, 7)
     return res.status(200).json(tasks)
   }

@@ -62,10 +62,10 @@ export function runTaskEngine(db, clientId) {
   let taskType = null
   let daysOffset = 1
 
-  if (days < 1)       return null
-  if (days >= 2 && days <= 3)  { taskType = 'follow_up'; daysOffset = 1 }
-  else if (days >= 4 && days <= 7) { taskType = 'call';  daysOffset = 0 }
-  else if (days > 10)           { taskType = 're_engage'; daysOffset = 0 }
+  if (days < 1)                      return null
+  if (days >= 2 && days <= 3)        { taskType = 'follow_up'; daysOffset = 1 }
+  else if (days >= 4 && days <= 10)  { taskType = 'call';      daysOffset = 0 }
+  else if (days > 10)                { taskType = 're_engage'; daysOffset = 0 }
 
   if (!taskType) return null
 
