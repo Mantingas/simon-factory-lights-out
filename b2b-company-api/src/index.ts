@@ -9,6 +9,17 @@ const server = serve({ fetch: app.fetch, port: config.PORT, hostname: config.HOS
   logger.info("server listening", { address: `http://${config.HOST}:${info.port}` });
 });
 
+// Without a listener, a bind failure surfaces as an unhandled 'error' event and
+// a raw stack trace. Report the cause and exit non-zero instead.
+server.on("error", (error: NodeJS.ErrnoException) => {
+  if (error.code === "EADDRINUSE") {
+    logger.error("port is already in use", { host: config.HOST, port: config.PORT });
+  } else {
+    logger.error("server error", { code: error.code, message: error.message });
+  }
+  process.exit(1);
+});
+
 function shutdown(signal: string): void {
   logger.info("shutting down", { signal });
   server.close(() => process.exit(0));
