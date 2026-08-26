@@ -2,6 +2,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 export type ApiErrorCode =
   | "VALIDATION_ERROR"
+  | "UNAUTHORIZED"
   | "NOT_FOUND"
   | "UNSUPPORTED_COUNTRY"
   | "UPSTREAM_ERROR"
@@ -62,6 +63,14 @@ export class ApiError extends Error {
       422,
       { country },
     );
+  }
+
+  static unauthorized(message: string, details?: unknown): ApiError {
+    return new ApiError("UNAUTHORIZED", message, 401, details);
+  }
+
+  static rateLimited(message: string, details?: unknown): ApiError {
+    return new ApiError("RATE_LIMITED", message, 429, details);
   }
 
   static upstream(message: string, details?: unknown): ApiError {

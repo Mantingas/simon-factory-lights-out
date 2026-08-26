@@ -103,3 +103,38 @@ export const VIES_INVALID = {
   address: "---",
   userError: "INVALID",
 };
+
+export const WL_ACCOUNT = "12124012121111000012345678";
+
+export const WL_ACTIVE = {
+  result: {
+    subject: {
+      name: "ORLEN SPÓŁKA AKCYJNA",
+      nip: NIP_ORLEN,
+      regon: REGON9_ORLEN,
+      statusVat: "Czynny",
+      accountNumbers: [WL_ACCOUNT],
+    },
+    requestId: "wl-req-1",
+    requestDateTime: "26-08-2026 20:00:00",
+  },
+};
+
+export const WL_EXEMPT = {
+  result: {
+    subject: {
+      name: "MAŁA FIRMA",
+      nip: NIP_ORLEN,
+      statusVat: "Zwolniony",
+      accountNumbers: [],
+    },
+    requestId: "wl-req-2",
+  },
+};
+
+/** A well-formed NIP that is simply not on the white list. */
+export const WL_NO_SUBJECT = {
+  result: { subject: null, requestId: "wl-req-3" },
+};
+
+export const WL_API_ERROR = { code: "WL-100", message: "Niepoprawny format daty" };

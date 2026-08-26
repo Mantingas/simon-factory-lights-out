@@ -3,6 +3,8 @@ import type {
   CompanyProvider,
   CompanyResponse,
   CompanySource,
+  VatEnricher,
+  VatEnrichment,
 } from "../../src/types.js";
 
 export interface StubProvider extends CompanyProvider {
@@ -47,5 +49,23 @@ export function companyFor(
     is_vat_valid: source === "VIES",
     source,
     ...overrides,
+  };
+}
+
+/** A `VatEnricher` whose answer is fixed per test. */
+export function stubEnricher(
+  behaviour: ((nip: string) => VatEnrichment | undefined) | Error,
+  supports: (input: CompanyLookupInput) => boolean = (input) => input.country === "PL",
+): VatEnricher & { calls: string[] } {
+  const calls: string[] = [];
+  return {
+    name: "BIALA_LISTA",
+    calls,
+    supports,
+    async enrich(nip: string): Promise<VatEnrichment | undefined> {
+      calls.push(nip);
+      if (behaviour instanceof Error) throw behaviour;
+      return behaviour(nip);
+    },
   };
 }

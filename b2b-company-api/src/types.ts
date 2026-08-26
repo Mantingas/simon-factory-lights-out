@@ -19,6 +19,16 @@ export interface CompanyResponse {
   address: CompanyAddress;
   is_vat_valid: boolean;
   source: CompanySource;
+  /**
+   * The registry's own VAT status wording, when one was obtained. Polish
+   * results carry the Biała Lista value (`Czynny` / `Zwolniony` /
+   * `Niezarejestrowany`), which `is_vat_valid` alone cannot express.
+   */
+  vat_status?: string;
+  /** IBANs registered to the entity, currently only from Biała Lista. */
+  bank_accounts?: string[];
+  /** Registries consulted beyond `source`, e.g. `["BIALA_LISTA"]`. */
+  enriched_by?: string[];
 }
 
 export type CompanySource = "VIES" | "GUS_BIR" | "CACHE";
@@ -32,6 +42,24 @@ export interface CompanyLookupInput {
   rawCode: string;
   /** True when the caller supplied a VAT-prefixed code (e.g. `LT100001234567`). */
   vatPrefixed: boolean;
+}
+
+/** What a VAT-status registry can add to an already-resolved company. */
+export interface VatEnrichment {
+  is_vat_valid: boolean;
+  vat_status?: string;
+  bank_accounts?: string[];
+}
+
+/**
+ * A secondary registry consulted after a primary provider answered. Enrichment
+ * is best effort: a `undefined` result means "no answer", never a failed
+ * lookup, so an outage degrades the response instead of breaking it.
+ */
+export interface VatEnricher {
+  readonly name: string;
+  supports(input: CompanyLookupInput): boolean;
+  enrich(nip: string, signal?: AbortSignal): Promise<VatEnrichment | undefined>;
 }
 
 export interface CompanyProvider {

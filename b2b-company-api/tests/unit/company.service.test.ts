@@ -3,8 +3,13 @@ import { CompanyCache } from "../../src/cache/company.cache.js";
 import { ApiError } from "../../src/errors.js";
 import { ProviderRegistry } from "../../src/providers/index.js";
 import { CompanyService } from "../../src/services/company.service.js";
-import { companyFor, stubProvider, type StubProvider } from "../helpers/stub-provider.js";
-import { NIP_ORLEN, lookupInput } from "../helpers/fixtures.js";
+import {
+  companyFor,
+  stubEnricher,
+  stubProvider,
+  type StubProvider,
+} from "../helpers/stub-provider.js";
+import { NIP_ORLEN, REGON9_ORLEN, lookupInput } from "../helpers/fixtures.js";
 
 function build(options: { gus?: StubProvider; vies?: StubProvider } = {}) {
   const gus = options.gus ?? stubProvider("GUS_BIR", (input) => companyFor(input, "GUS_BIR"));
@@ -108,5 +113,104 @@ describe("CompanyService.lookup", () => {
   it("exposes cache statistics", async () => {
     await ctx.service.lookup(lookupInput());
     expect(ctx.service.cacheStats()).toMatchObject({ size: 1, max: 10, ttlMs: 60_000 });
+  });
+});
+
+describe("CompanyService — Biała Lista enrichment", () => {
+  const plInput = () =>
+    lookupInput({ country: "PL", code: NIP_ORLEN, rawCode: NIP_ORLEN, vatPrefixed: false });
+
+  function buildEnriched(enricher: ReturnType<typeof stubEnricher> | null) {
+    const gus = stubProvider("GUS_BIR", (input) =>
+      companyFor(input, "GUS_BIR", { vat_code: `PL${input.code}`, is_vat_valid: false }),
+    );
+    const vies = stubProvider("VIES", (input) => companyFor(input, "VIES"));
+    const cache = new CompanyCache({ ttlMs: 60_000, maxEntries: 10 });
+    return {
+      service: new CompanyService({
+        registry: new ProviderRegistry({ gus, vies }),
+        cache,
+        vatEnricher: enricher,
+      }),
+      gus,
+      vies,
+      enricher,
+    };
+  }
+
+  it("upgrades a GUS result to VAT-valid for an active payer", async () => {
+    const ctx = buildEnriched(
+      stubEnricher(() => ({
+        is_vat_valid: true,
+        vat_status: "Czynny",
+        bank_accounts: ["12124012121111000012345678"],
+      })),
+    );
+
+    const result = await ctx.service.lookup(plInput());
+    expect(result).toMatchObject({
+      source: "GUS_BIR",
+      is_vat_valid: true,
+      vat_status: "Czynny",
+      bank_accounts: ["12124012121111000012345678"],
+      enriched_by: ["BIALA_LISTA"],
+    });
+  });
+
+  it("keeps a GUS result invalid for an exempt payer but records the status", async () => {
+    const ctx = buildEnriched(stubEnricher(() => ({ is_vat_valid: false, vat_status: "Zwolniony" })));
+
+    const result = await ctx.service.lookup(plInput());
+    expect(result.is_vat_valid).toBe(false);
+    expect(result.vat_status).toBe("Zwolniony");
+    expect(result.bank_accounts).toBeUndefined();
+  });
+
+  it("passes the NIP the register returned, not the queried code", async () => {
+    const ctx = buildEnriched(stubEnricher(() => ({ is_vat_valid: true, vat_status: "Czynny" })));
+    await ctx.service.lookup(
+      lookupInput({ country: "PL", code: REGON9_ORLEN, rawCode: REGON9_ORLEN }),
+    );
+    expect(ctx.enricher?.calls).toEqual([REGON9_ORLEN]);
+  });
+
+  it("degrades to is_vat_valid false when the white list is unavailable", async () => {
+    const ctx = buildEnriched(stubEnricher(() => undefined));
+
+    const result = await ctx.service.lookup(plInput());
+    expect(result.is_vat_valid).toBe(false);
+    expect(result.vat_status).toBeUndefined();
+    expect(result.enriched_by).toBeUndefined();
+    expect(result.name).toBe(`Company ${NIP_ORLEN}`);
+  });
+
+  it("does not enrich VIES results — VIES already answered the VAT question", async () => {
+    const ctx = buildEnriched(stubEnricher(() => ({ is_vat_valid: false, vat_status: "Zwolniony" })));
+    await ctx.service.lookup(lookupInput({ country: "LT" }));
+    expect(ctx.enricher?.calls).toEqual([]);
+  });
+
+  it("does not enrich when the enricher does not support the country", async () => {
+    const ctx = buildEnriched(stubEnricher(() => ({ is_vat_valid: true }), () => false));
+    const result = await ctx.service.lookup(plInput());
+    expect(result.is_vat_valid).toBe(false);
+    expect(ctx.enricher?.calls).toEqual([]);
+  });
+
+  it("caches the enriched result, so a repeat lookup does not re-enrich", async () => {
+    const ctx = buildEnriched(stubEnricher(() => ({ is_vat_valid: true, vat_status: "Czynny" })));
+
+    await ctx.service.lookup(plInput());
+    const cached = await ctx.service.lookup(plInput());
+
+    expect(cached).toMatchObject({ source: "CACHE", is_vat_valid: true, vat_status: "Czynny" });
+    expect(ctx.enricher?.calls).toHaveLength(1);
+  });
+
+  it("runs no enrichment at all when it is disabled", async () => {
+    const ctx = buildEnriched(null);
+    const result = await ctx.service.lookup(plInput());
+    expect(result.is_vat_valid).toBe(false);
+    expect(result.enriched_by).toBeUndefined();
   });
 });
