@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 *.lock
 .claude/settings.local.json
+
+# Iškelta į atskirą repozitoriją: https://github.com/Mantingas/b2b-company-api
+b2b-company-api/
