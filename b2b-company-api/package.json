@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.14.0",
-    "@hono/zod-validator": "^0.4.3",
     "fast-xml-parser": "^4.5.1",
     "hono": "^4.7.0",
     "lru-cache": "^11.0.2",
