@@ -6,3 +6,6 @@ __pycache__/
 
 # Iškelta į atskirą repozitoriją: https://github.com/Mantingas/b2b-company-api
 b2b-company-api/
+
+# Iškelta į b2b-company-api monorepo
+shopify-b2b-app/
