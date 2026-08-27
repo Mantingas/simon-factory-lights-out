@@ -1,0 +1,34 @@
+api_version = "2025-01"
+
+[[extensions]]
+type = "ui_extension"
+name = "B2B rekvizitai"
+handle = "b2b-checkout-lookup"
+
+  # `purchase.checkout.block.render` is a *placeable* block: it does not appear
+  # until a merchant drags it into position in the checkout editor. That is the
+  # point — the merchant decides whether it sits above or below the address
+  # form. If it seems not to render, check the editor before checking the code.
+  [[extensions.targeting]]
+  module = "./src/Checkout.tsx"
+  target = "purchase.checkout.block.render"
+
+  [extensions.capabilities]
+  # Required to call the lookup API from the checkout sandbox. Shopify reviews
+  # this capability for public apps, and the reviewer will ask which host is
+  # contacted and why — see README.
+  network_access = true
+
+  # Not needed: the extension reads no Storefront data, only what the buyer
+  # types and what checkout already holds.
+  api_access = false
+  block_progress = false
+
+  [extensions.settings]
+  # Merchant-editable in the checkout editor, so the API host can be pointed at
+  # a staging deployment without rebuilding the extension.
+  [[extensions.settings.fields]]
+  key = "api_base_url"
+  type = "single_line_text_field"
+  name = "Company lookup API"
+  description = "Base URL of the B2B lookup service. Leave empty to use the default."
