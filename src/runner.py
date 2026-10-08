@@ -39,6 +39,15 @@ else:
 # Runtime Adapters
 # ---------------------------------------------------------------------------
 
+MAX_TURNS_PER_GATE: int = int(os.environ.get("SFLO_MAX_TURNS", "80"))
+"""Turns a single gate agent may take.
+
+A real build gate reads the spec, runs the suite, edits several files and runs it
+again; 20 turns was not enough to reach the end of one, and running out killed
+the whole pipeline mid-refactor. Override with SFLO_MAX_TURNS.
+"""
+
+
 class RuntimeAdapter:
     """Base class — spawn an agent and return its response text."""
 
@@ -66,7 +75,7 @@ class ClaudeCodeAdapter(RuntimeAdapter):
                 system_prompt=system_prompt,
                 model=model,
                 allowed_tools=["Read", "Write", "Edit", "Grep", "Glob", "Bash"],
-                max_turns=20,
+                max_turns=MAX_TURNS_PER_GATE,
             ),
         ):
             if hasattr(message, "result"):
@@ -339,11 +348,19 @@ async def run_pipeline(user_prompt, sflo_dir=".sflo", runtime=None, verbose=True
 
             import time
             spawn_start = time.time()
-            response = await adapter.spawn_agent(
-                model=model,
-                system_prompt=system_prompt,
-                user_prompt=user_msg,
-            )
+            try:
+                response = await adapter.spawn_agent(
+                    model=model,
+                    system_prompt=system_prompt,
+                    user_prompt=user_msg,
+                )
+            except Exception as exc:
+                # An agent that dies (turn limit, transport error) must not take
+                # the pipeline with it: the gate has simply not been satisfied.
+                # Leaving no artifact makes validation fail, which is what the
+                # state machine already knows how to handle.
+                log(f"  Gate [{role}] agent failed: {type(exc).__name__}: {exc}")
+                response = f"[agent failed: {type(exc).__name__}: {exc}]"
 
             # Verify agent wrote the artifact
             produces = agent.get("produces", "")
